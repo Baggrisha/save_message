@@ -1,1 +1,1 @@
-Просто вставляете telegram api и свой id в вconfigs/settings.py и все работает
+Просто вставляете telegram api в поле TOKEB и свой id в поле admin, в файле в вconfigs/settings.py, добавляете бота в бизнес аккаунт чат-бот и все - готово, наслаждайтесь.
