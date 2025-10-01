@@ -137,8 +137,8 @@ async def edited_message(conn=BusinessConnection):
     await bot.send_message(
         chat_id=admin,
         text=(f'{text}\n\n'
-              f'<blockquote>старое:\n{old_text["text"]}\n</blockquote>\n\n'
-              f'<blockquote>новое:\n{conn.text}</blockquote>'),
+              f'Поменял(а) с:<blockquote>\n{old_text["text"]}\n</blockquote>\n\n'
+              f'Поменял(а) на:<blockquote>\n{conn.text}</blockquote>'),
         parse_mode='HTML',
         disable_web_page_preview=True
     )
