@@ -25,7 +25,7 @@ async def handle_business_message(conn=BusinessConnection):
         "caption": getattr(conn, "caption", None),
         "media_group_id": getattr(conn, "media_group_id", None)
     }
-   
+
 
 @router_main.business_connection()
 async def business_connected(conn=BusinessConnection):
@@ -43,8 +43,8 @@ async def business_connected(conn=BusinessConnection):
 @router_main.deleted_business_messages()
 async def deleted_message(conn=BusinessConnection):
     chat_id = conn.chat.id
-    text_header = (f'[{conn.chat.full_name}](https://t.me/{conn.chat.username})\, '
-                   f'{conn.chat.id} удалил\(а\) сообщение')
+    text_header = (f'<a href="https://t.me/{conn.chat.username}">{conn.chat.full_name}</a>, '
+            f'{conn.chat.id} удалил(а) сообщение')
 
     media_groups: dict[str, list] = {}
     single_msgs = []
@@ -62,13 +62,20 @@ async def deleted_message(conn=BusinessConnection):
 
     # Одиночные сообщения
     for msg in single_msgs:
+        if msg is None:
+            await bot.send_message(chat_id=admin,
+                                   text=f'{text_header}\n\n<blockquote> [содержание недоступно]</blockquote>',
+                                   parse_mode='HTML', disable_web_page_preview=True)
+
+            break
+
         if msg["text"]:
             await bot.send_message(chat_id=admin,
-                                   text=f'{text_header}\n\n> {msg["text"]}',
-                                   parse_mode='Markdownv2',
+                                   text=f'{text_header}\n\n<blockquote> {msg["text"]}</blockquote>',
+                                   parse_mode='HTML',
                                    disable_web_page_preview=True)
         else:
-            await bot.send_message(chat_id=admin, text=text_header, parse_mode='Markdownv2', disable_web_page_preview=True)
+            await bot.send_message(chat_id=admin, text=text_header, parse_mode='HTML', disable_web_page_preview=True)
 
 
         if msg["photo"]:
@@ -109,21 +116,32 @@ async def deleted_message(conn=BusinessConnection):
                 caption_used = True
 
         if media_list:
-            await bot.send_message(chat_id=admin, text=text_header, parse_mode='Markdownv2', disable_web_page_preview=True)
+            await bot.send_message(chat_id=admin, text=text_header, parse_mode='HTML', disable_web_page_preview=True)
             await bot.send_media_group(chat_id=admin, media=media_list)
 
 
 @router_main.edited_business_message()
 async def edited_message(conn=BusinessConnection):
     chat_id = conn.chat.id
-    text = (f'[{conn.chat.full_name}](https://t.me/{conn.chat.username}), '
-            f'{conn.chat.id} изменил\(а\) сообщение')
     try:
-        await bot.send_message(chat_id=admin,
-                               text=f'{text}\nпоменял(а) с\n>{business_messages_cache[chat_id][conn.message_id]}\nпоменял(а) на\n>{conn.text}',
-                               parse_mode='Markdownv2', disable_web_page_preview=True)
+        old_text = business_messages_cache[chat_id][conn.message_id]
     except KeyError:
-        pass
+        old_text = 'содержание недоступно'
+
+    # Проверяем, изменился ли текст
+    if not conn.text or conn.text == old_text:
+        return  # если текста нет или он не поменялся — ничего не делаем
+    text = (f'<a href="https://t.me/{conn.chat.username}">{conn.chat.full_name}</a>, '
+            f'{conn.chat.id} изменил(а) сообщение')
+
+    await bot.send_message(
+        chat_id=admin,
+        text=(f'{text}\n\n'
+              f'Поменял(а) с:<blockquote>\n{old_text["text"]}\n</blockquote>\n\n'
+              f'Поменял(а) на:<blockquote>\n{conn.text}</blockquote>'),
+        parse_mode='HTML',
+        disable_web_page_preview=True
+    )
 
 
 @router_main.error()
